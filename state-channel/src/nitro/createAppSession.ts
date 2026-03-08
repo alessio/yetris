@@ -1,10 +1,13 @@
-import { AppDefinition, CreateAppSessionRequest } from "@erc7824/nitrolite";
+import {
+  type RPCAppDefinition,
+  type CreateAppSessionRequestParams,
+  RPCProtocolVersion,
+} from "@yellow-org/sdk-compat";
 import { Hex } from "viem";
 import { walletClient } from "../constants";
 import { CONTRACT_ADDRESSES } from ".";
 import { getBrokerWebSocket } from "./ws";
 
-const DEFAULT_PROTOCOL = "";
 const DEFAULT_WEIGHTS = [0, 100]; // server has the power
 const DEFAULT_QUORUM = 100;
 
@@ -13,8 +16,9 @@ export const createAppSession = (player: Hex) => {
 
   const requestId = Date.now();
 
-  const appDefinition: AppDefinition = {
-    protocol: DEFAULT_PROTOCOL,
+  const appDefinition: RPCAppDefinition = {
+    application: "",
+    protocol: RPCProtocolVersion.NitroRPC_0_2,
     participants,
     weights: DEFAULT_WEIGHTS,
     quorum: DEFAULT_QUORUM,
@@ -22,23 +26,25 @@ export const createAppSession = (player: Hex) => {
     nonce: Date.now(),
   };
 
-  const params: CreateAppSessionRequest[] = [
+  const params: CreateAppSessionRequestParams[] = [
     {
       definition: appDefinition,
       allocations: participants.map((participant) => ({
-        participant,
-        asset: CONTRACT_ADDRESSES.tokenAddress as Hex,
+        participant: participant as Hex,
+        asset: CONTRACT_ADDRESSES.tokenAddress,
         amount: "0",
       })),
+      quorum_sigs: [],
     },
   ];
   const timestamp = Math.floor(Date.now() / 1000);
 
   // Create the request with properly formatted parameters
-  const request: { req: [number, string, CreateAppSessionRequest[], number] } =
-    {
-      req: [requestId, "create_app_session", params, timestamp],
-    };
+  const request: {
+    req: [number, string, CreateAppSessionRequestParams[], number];
+  } = {
+    req: [requestId, "create_app_session", params, timestamp],
+  };
 
   const broker = getBrokerWebSocket();
 

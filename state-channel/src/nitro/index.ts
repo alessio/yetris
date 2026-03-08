@@ -1,5 +1,5 @@
-import { NitroliteClient, NitroliteClientConfig } from "@erc7824/nitrolite";
-import { createPublicClient, createWalletClient, http, Hex } from "viem";
+import { NitroliteClient, NitroliteClientConfig } from "@yellow-org/sdk-compat";
+import { createWalletClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
 
@@ -18,28 +18,15 @@ export const createClient = async () => {
     account: wallet,
   });
 
-  const publicClient = createPublicClient({
-    transport: http(process.env.POLYGON_RPC_URL!),
-    chain: polygon,
-  });
-
-  // Create a dedicated client for signing state updates
-  const stateWalletClient = createWalletClient({
-    transport: http(process.env.POLYGON_RPC_URL),
-    chain: polygon,
-    account: wallet,
-  });
-
   const config: NitroliteClientConfig = {
-    publicClient,
+    wsURL: "wss://clearnet.yellow.com/ws",
     walletClient,
-    stateWalletClient,
     addresses: CONTRACT_ADDRESSES,
     chainId: polygon.id,
     challengeDuration: BigInt(86400 * 7), // 7 days in seconds
   };
 
-  const client = new NitroliteClient(config);
+  const client = await NitroliteClient.create(config);
 
   return client;
 };
