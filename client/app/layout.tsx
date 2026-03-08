@@ -1,4 +1,4 @@
-import { Providers } from "@/providers/providers";
+import ClientLayout from "./client-layout";
 import "@rainbow-me/rainbowkit/styles.css";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

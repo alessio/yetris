@@ -20,24 +20,13 @@ export const getAuthMessage = async () => {
     address: walletClient.account.address,
     session_key: walletClient.account.address,
     application: env.APP_NAME,
+    allowances: [],
     expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour expiration
     scope: "console",
-    allowances: [],
   });
 
   return authRequestMsg;
 };
-
-const eip712MessageSigner = createEIP712AuthMessageSigner(
-  walletClient,
-  {
-    scope: "console",
-    session_key: walletClient.account.address,
-    expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),
-    allowances: [],
-  },
-  { name: env.APP_NAME },
-);
 
 export const runNitroWS = () => {
   const ws = new WebSocket("wss://clearnet.yellow.com/ws");
@@ -60,10 +49,21 @@ export const runNitroWS = () => {
       if (message.res && message.res[1] === "auth_challenge") {
         console.log("Received auth challenge");
 
+        const signer = createEIP712AuthMessageSigner(
+          walletClient as any,
+          {
+            scope: "console",
+            session_key: walletClient.account.address,
+            expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),
+            allowances: [],
+          },
+          { name: env.APP_NAME },
+        );
+
         const parsed = parseAnyRPCResponse(event.data.toString());
 
         const authVerifyMsg = await createAuthVerifyMessage(
-          eip712MessageSigner,
+          signer,
           { params: { challengeMessage: parsed.params.challengeMessage } },
         );
 

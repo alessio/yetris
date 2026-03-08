@@ -8,6 +8,7 @@ import { walletClient } from "../constants";
 import { CONTRACT_ADDRESSES } from ".";
 import { getBrokerWebSocket } from "./ws";
 
+const DEFAULT_PROTOCOL = RPCProtocolVersion.NitroRPC_0_2;
 const DEFAULT_WEIGHTS = [0, 100]; // server has the power
 const DEFAULT_QUORUM = 100;
 
@@ -17,8 +18,8 @@ export const createAppSession = (player: Hex) => {
   const requestId = Date.now();
 
   const appDefinition: RPCAppDefinition = {
-    application: "",
-    protocol: RPCProtocolVersion.NitroRPC_0_2,
+    application: walletClient.account.address,
+    protocol: DEFAULT_PROTOCOL,
     participants,
     weights: DEFAULT_WEIGHTS,
     quorum: DEFAULT_QUORUM,
@@ -31,7 +32,7 @@ export const createAppSession = (player: Hex) => {
       definition: appDefinition,
       allocations: participants.map((participant) => ({
         participant: participant as Hex,
-        asset: CONTRACT_ADDRESSES.tokenAddress,
+        asset: CONTRACT_ADDRESSES.tokenAddress as string,
         amount: "0",
       })),
       quorum_sigs: [],
