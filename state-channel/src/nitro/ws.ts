@@ -1,9 +1,4 @@
-import {
-  createAuthRequestMessage,
-  createAuthVerifyMessage,
-  createEIP712AuthMessageSigner,
-  parseAnyRPCResponse,
-} from "@yellow-org/sdk-compat";
+import { EIP712AuthTypes } from "@yellow-org/sdk-compat";
 import WebSocket from "ws";
 import { walletClient } from "../constants";
 import { env } from "../constants/env";
@@ -15,17 +10,61 @@ export function getBrokerWebSocket(): WebSocket | null {
   return brokerWS;
 }
 
-export const getAuthMessage = async () => {
-  const authRequestMsg = await createAuthRequestMessage({
-    address: walletClient.account.address,
-    session_key: walletClient.account.address,
+function generateRequestId(): number {
+  return Math.floor(Date.now() + Math.random() * 10000);
+}
+
+export const getAuthMessage = () => {
+  const requestId = generateRequestId();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const walletAddress = walletClient.account.address;
+
+  const params = {
+    address: walletAddress,
+    session_key: walletAddress,
     application: env.APP_NAME,
     allowances: [],
-    expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour expiration
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
     scope: "console",
+  };
+
+  const request = {
+    req: [requestId, "auth_request", params, timestamp],
+    sig: [],
+  };
+
+  return JSON.stringify(request);
+};
+
+const eip712MessageSigner = async (payload: any[]): Promise<string> => {
+  // payload is the req tuple: [requestId, method, params, timestamp]
+  const params = payload[2];
+  const challenge = params?.challenge ?? params?.[0]?.challenge;
+
+  if (!challenge) {
+    throw new Error("Challenge not found in payload");
+  }
+
+  const walletAddress = walletClient.account.address;
+
+  const message = {
+    challenge,
+    scope: "console",
+    wallet: walletAddress,
+    session_key: walletAddress,
+    expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),
+    allowances: [],
+  };
+
+  const signature = await walletClient.signTypedData({
+    account: walletClient.account!,
+    domain: { name: env.APP_NAME },
+    types: EIP712AuthTypes,
+    primaryType: "Policy",
+    message,
   });
 
-  return authRequestMsg;
+  return signature;
 };
 
 export const runNitroWS = () => {
@@ -36,7 +75,7 @@ export const runNitroWS = () => {
     console.log("WebSocket connection established");
 
     // we send the ws server an auth request
-    const authMessage = await getAuthMessage();
+    const authMessage = getAuthMessage();
     ws.send(authMessage);
   };
 
@@ -49,25 +88,32 @@ export const runNitroWS = () => {
       if (message.res && message.res[1] === "auth_challenge") {
         console.log("Received auth challenge");
 
-        const signer = createEIP712AuthMessageSigner(
-          walletClient as any,
-          {
-            scope: "console",
-            session_key: walletClient.account.address,
-            expires_at: BigInt(Math.floor(Date.now() / 1000) + 3600),
-            allowances: [],
-          },
-          { name: env.APP_NAME },
-        );
+        // Extract challenge_message from broker response
+        // Broker sends: res[2] = [{challenge_message: "..."}] (array format)
+        const challengeData = message.res[2];
+        const challengeMessage =
+          challengeData?.[0]?.challenge_message ??
+          challengeData?.challenge_message;
 
-        const parsed = parseAnyRPCResponse(event.data.toString());
+        if (!challengeMessage) {
+          console.error("Could not extract challenge_message from:", challengeData);
+          return;
+        }
 
-        const authVerifyMsg = await createAuthVerifyMessage(
-          signer,
-          { params: { challengeMessage: parsed.params.challengeMessage } },
-        );
+        // Build auth_verify request
+        const requestId = generateRequestId();
+        const timestamp = Math.floor(Date.now() / 1000);
+        const params = { challenge: challengeMessage };
+        const req = [requestId, "auth_verify", params, timestamp] as const;
 
-        ws.send(authVerifyMsg);
+        const signature = await eip712MessageSigner([...req]);
+
+        const verifyRequest = {
+          req,
+          sig: [signature],
+        };
+
+        ws.send(JSON.stringify(verifyRequest));
         // handy for debugging
       } else if (message.res && message.res[1] === "error") {
         console.error("Received error from server:");

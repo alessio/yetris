@@ -71,88 +71,92 @@ contract YetrisTrophyTest is Test {
 
     function test_CoronationMintsTokenWhenNoTokenExists() public {
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
 
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), addr1);
         assertEq(yetrisCrown.totalSupply(), 1);
         assertEq(yetrisCrown.balanceOf(addr1), 1);
+        assertEq(yetrisCrown.highScore(), 100);
     }
 
     function test_CoronationEmitsTransferEventWhenMinting() public {
         vm.prank(kingMaker);
         vm.expectEmit(true, true, true, true);
         emit Transfer(address(0), addr1, TOKEN_ID);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
     }
 
     function test_OnlyKingMakerCanCallCoronation() public {
         vm.prank(addr1);
         vm.expectRevert();
-        yetrisCrown.coronation(addr2);
+        yetrisCrown.coronation(addr2, 100);
     }
 
     function test_CoronationTransfersTokenBetweenOwners() public {
         // Initial coronation to addr1
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
 
         // Transfer to addr2
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr2);
+        yetrisCrown.coronation(addr2, 200);
 
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), addr2);
         assertEq(yetrisCrown.balanceOf(addr1), 0);
         assertEq(yetrisCrown.balanceOf(addr2), 1);
         assertEq(yetrisCrown.totalSupply(), 1);
+        assertEq(yetrisCrown.highScore(), 200);
     }
 
     function test_CoronationEmitsTransferEventWhenTransferring() public {
         // Initial coronation
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
 
         // Transfer to addr2
         vm.prank(kingMaker);
         vm.expectEmit(true, true, true, true);
         emit Transfer(addr1, addr2, TOKEN_ID);
-        yetrisCrown.coronation(addr2);
+        yetrisCrown.coronation(addr2, 200);
     }
 
     function test_CoronationAllowsTransferToSameOwner() public {
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
 
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 200);
 
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), addr1);
+        assertEq(yetrisCrown.highScore(), 200);
     }
 
     function test_MultipleTransfersBetweenDifferentOwners() public {
         // Transfer to addr1
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), addr1);
 
         // Transfer to addr2
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr2);
+        yetrisCrown.coronation(addr2, 200);
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), addr2);
 
         // Transfer to addr3
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr3);
+        yetrisCrown.coronation(addr3, 300);
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), addr3);
 
         // Transfer back to addr1
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 400);
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), addr1);
+        assertEq(yetrisCrown.highScore(), 400);
     }
 
     function test_TokenURIReturnsCorrectMetadata() public {
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
 
         assertEq(yetrisCrown.tokenURI(TOKEN_ID), METADATA_URI);
     }
@@ -164,9 +168,9 @@ contract YetrisTrophyTest is Test {
 
     function test_SupplyRemainsOneAfterMultipleTransfers() public {
         vm.startPrank(kingMaker);
-        yetrisCrown.coronation(addr1);
-        yetrisCrown.coronation(addr2);
-        yetrisCrown.coronation(addr3);
+        yetrisCrown.coronation(addr1, 100);
+        yetrisCrown.coronation(addr2, 200);
+        yetrisCrown.coronation(addr3, 300);
         vm.stopPrank();
 
         assertEq(yetrisCrown.totalSupply(), 1);
@@ -191,16 +195,16 @@ contract YetrisTrophyTest is Test {
     function test_CoronationRevertsWithZeroAddress() public {
         vm.prank(kingMaker);
         vm.expectRevert();
-        yetrisCrown.coronation(address(0));
+        yetrisCrown.coronation(address(0), 100);
     }
 
     function test_NonKingMakerCannotCoronateEvenAfterTokenExists() public {
         vm.prank(kingMaker);
-        yetrisCrown.coronation(addr1);
+        yetrisCrown.coronation(addr1, 100);
 
         vm.prank(addr1);
         vm.expectRevert();
-        yetrisCrown.coronation(addr2);
+        yetrisCrown.coronation(addr2, 200);
     }
 
     function test_FuzzCoronationWithMultipleAddresses(address to) public {
@@ -208,7 +212,7 @@ contract YetrisTrophyTest is Test {
         vm.assume(to.code.length == 0); // Ensure it's not a contract
 
         vm.prank(kingMaker);
-        yetrisCrown.coronation(to);
+        yetrisCrown.coronation(to, 100);
 
         assertEq(yetrisCrown.ownerOf(TOKEN_ID), to);
         assertEq(yetrisCrown.totalSupply(), 1);
@@ -226,7 +230,7 @@ contract YetrisTrophyTest is Test {
         vm.startPrank(kingMaker);
 
         for (uint i = 0; i < addresses.length; i++) {
-            yetrisCrown.coronation(addresses[i]);
+            yetrisCrown.coronation(addresses[i], (i + 1) * 100);
             lastOwner = addresses[i];
 
             assertEq(yetrisCrown.ownerOf(TOKEN_ID), lastOwner);
