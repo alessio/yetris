@@ -82,12 +82,12 @@ const config: HardhatUserConfig = {
    */
   networks: {
     hardhatMainnet: {
-      type: "edr",
+      type: "edr-simulated",
       chainType: "l1",
     },
     hardhatOp: {
-      type: "edr",
-      chainType: "optimism",
+      type: "edr-simulated",
+      chainType: "op",
     },
     sepolia: {
       type: "http",
@@ -98,8 +98,8 @@ const config: HardhatUserConfig = {
     polygon: {
       type: "http",
       chainType: "l1",
-      url: process.env.POLYGON_RPC_URL!,
-      accounts: [process.env.PRIVATE_KEY!],
+      url: configVariable("POLYGON_RPC_URL"),
+      accounts: [configVariable("PRIVATE_KEY")],
     },
   },
 };

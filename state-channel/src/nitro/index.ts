@@ -1,4 +1,8 @@
-import { NitroliteClient, NitroliteClientConfig } from "@erc7824/nitrolite";
+import {
+  NitroliteClient,
+  NitroliteClientConfig,
+  WalletStateSigner,
+} from "@erc7824/nitrolite";
 import { createPublicClient, createWalletClient, http, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
@@ -23,17 +27,13 @@ export const createClient = async () => {
     chain: polygon,
   });
 
-  // Create a dedicated client for signing state updates
-  const stateWalletClient = createWalletClient({
-    transport: http(process.env.POLYGON_RPC_URL),
-    chain: polygon,
-    account: wallet,
-  });
+  // Create a state signer for signing state updates
+  const stateSigner = new WalletStateSigner(walletClient as any);
 
   const config: NitroliteClientConfig = {
     publicClient,
-    walletClient,
-    stateWalletClient,
+    walletClient: walletClient as any,
+    stateSigner,
     addresses: CONTRACT_ADDRESSES,
     chainId: polygon.id,
     challengeDuration: BigInt(86400 * 7), // 7 days in seconds

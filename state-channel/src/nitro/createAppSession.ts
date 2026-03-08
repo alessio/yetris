@@ -1,10 +1,14 @@
-import { AppDefinition, CreateAppSessionRequest } from "@erc7824/nitrolite";
+import {
+  RPCAppDefinition,
+  CreateAppSessionRequestParams,
+  RPCProtocolVersion,
+} from "@erc7824/nitrolite";
 import { Hex } from "viem";
 import { walletClient } from "../constants";
 import { CONTRACT_ADDRESSES } from ".";
 import { getBrokerWebSocket } from "./ws";
 
-const DEFAULT_PROTOCOL = "";
+const DEFAULT_PROTOCOL = RPCProtocolVersion.NitroRPC_0_2;
 const DEFAULT_WEIGHTS = [0, 100]; // server has the power
 const DEFAULT_QUORUM = 100;
 
@@ -13,7 +17,8 @@ export const createAppSession = (player: Hex) => {
 
   const requestId = Date.now();
 
-  const appDefinition: AppDefinition = {
+  const appDefinition: RPCAppDefinition = {
+    application: walletClient.account.address,
     protocol: DEFAULT_PROTOCOL,
     participants,
     weights: DEFAULT_WEIGHTS,
@@ -22,12 +27,12 @@ export const createAppSession = (player: Hex) => {
     nonce: Date.now(),
   };
 
-  const params: CreateAppSessionRequest[] = [
+  const params: CreateAppSessionRequestParams[] = [
     {
       definition: appDefinition,
       allocations: participants.map((participant) => ({
-        participant,
-        asset: CONTRACT_ADDRESSES.tokenAddress as Hex,
+        participant: participant as Hex,
+        asset: CONTRACT_ADDRESSES.tokenAddress as string,
         amount: "0",
       })),
     },
@@ -35,10 +40,11 @@ export const createAppSession = (player: Hex) => {
   const timestamp = Math.floor(Date.now() / 1000);
 
   // Create the request with properly formatted parameters
-  const request: { req: [number, string, CreateAppSessionRequest[], number] } =
-    {
-      req: [requestId, "create_app_session", params, timestamp],
-    };
+  const request: {
+    req: [number, string, CreateAppSessionRequestParams[], number];
+  } = {
+    req: [requestId, "create_app_session", params, timestamp],
+  };
 
   const broker = getBrokerWebSocket();
 
