@@ -45,11 +45,18 @@ export default function Leaderboard() {
     ],
   });
 
-  const highScore = data?.[0]?.result;
-  const champion = data?.[1]?.result;
+  const highScore = data?.[0]?.result as bigint | undefined;
+  const champion = data?.[1]?.result as string | undefined;
 
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const formatAddress = (address: string) =>
+    `${address.slice(0, 6)}...${address.slice(-4)}`;
+
+  const formatScore = (score: bigint): string => {
+    if (score <= BigInt(1_000_000_000)) {
+      return Number(score).toLocaleString();
+    }
+    const str = score.toString();
+    return `${str[0]}.${str.slice(1, 4)}e+${str.length - 1}`;
   };
 
   return (
@@ -96,7 +103,7 @@ export default function Leaderboard() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg md:text-2xl font-bold text-transparent bg-gradient-to-r from-white to-gray-300 bg-clip-text truncate">
                           {champion
-                            ? formatAddress(champion as string)
+                            ? formatAddress(champion)
                             : "No Champion"}
                         </h3>
                         {champion && (
@@ -124,9 +131,10 @@ export default function Leaderboard() {
                       Error
                     </div>
                   ) : (
-                    <div className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text">
-                      High Score:{" "}
-                      {highScore ? Number(highScore).toLocaleString() : "0"}
+                    <div className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text break-all">
+                      {highScore !== undefined
+                        ? formatScore(highScore)
+                        : "0"}
                     </div>
                   )}
                 </div>
