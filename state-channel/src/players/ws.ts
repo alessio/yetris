@@ -5,6 +5,7 @@ import { ethers } from "ethers";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { polygon } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { addClient, removeClient } from "../broadcast";
 
 export interface TetrisWebSocket extends WebSocket {
   playerId: string;
@@ -316,6 +317,7 @@ export const runPlayerWS = (server: Server) => {
 
   wss.on("connection", (ws: WebSocket) => {
     console.log("Client connected");
+    addClient(ws);
 
     const tetrisWs = ws as TetrisWebSocket;
     tetrisWs.playerId = randomBytes(8).toString("hex");
@@ -330,7 +332,7 @@ export const runPlayerWS = (server: Server) => {
     });
 
     tetrisWs.on("close", async () => {
-      // Clean up any active games for this player
+      removeClient(ws);
       for (const [gameId, game] of games.entries()) {
         if (game.playerId === tetrisWs.playerId) {
           games.delete(gameId);
