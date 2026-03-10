@@ -21,7 +21,7 @@ app.use(express.json());
 
 app.get<{}, MessageResponse>("/", (req, res) => {
   res.json({
-    message: "🦄🌈✨👋🌎🌍🌏✨🌈🦄",
+    message: "yetris-v2-console-enabled",
   });
 });
 
