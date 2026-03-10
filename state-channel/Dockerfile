@@ -7,6 +7,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+RUN echo "cache-bust-$(date +%s)" > /tmp/.build-stamp
 
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
