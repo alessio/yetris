@@ -5,7 +5,7 @@ import { ethers } from "ethers";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { polygon } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
-import { addClient, removeClient } from "../broadcast";
+import { addClient, removeClient, broadcastNetworkLog } from "../broadcast";
 
 export interface TetrisWebSocket extends WebSocket {
   playerId: string;
@@ -44,6 +44,17 @@ async function handleWebSocketMessage(
   ws: TetrisWebSocket,
   data: any,
 ): Promise<void> {
+  const originalSend = ws.send.bind(ws);
+  ws.send = function (msg: any, ...args: any[]) {
+    try {
+      const parsed = typeof msg === "string" ? JSON.parse(msg) : msg;
+      if (parsed.type !== "networkLog") {
+        broadcastNetworkLog("sent", { res: [0, `player:${parsed.type}`, parsed, Math.floor(Date.now() / 1000)] });
+      }
+    } catch {}
+    return originalSend(msg, ...args);
+  } as any;
+
   switch (data.type) {
     case "startGame": {
       console.log("start game web socket called");
@@ -319,19 +330,13 @@ export const runPlayerWS = (server: Server) => {
     console.log("Client connected");
     addClient(ws);
 
-    ws.send(JSON.stringify({
-      type: "networkLog",
-      direction: "received" as const,
-      timestamp: new Date().toISOString(),
-      data: { res: [0, "connection_test", { status: "Console pipeline working" }, 0] },
-    }));
-
     const tetrisWs = ws as TetrisWebSocket;
     tetrisWs.playerId = randomBytes(8).toString("hex");
 
     tetrisWs.on("message", async (message: any) => {
       try {
         const data = JSON.parse(message.toString());
+        broadcastNetworkLog("received", { req: [0, `player:${data.type}`, data, Math.floor(Date.now() / 1000)] });
         await handleWebSocketMessage(tetrisWs, data);
       } catch (error) {
         console.error("Error handling message:", error);
