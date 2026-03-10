@@ -1,9 +1,16 @@
 import { WebSocket } from "ws";
 
 const connectedClients = new Set<WebSocket>();
+const MAX_BUFFER = 50;
+const messageBuffer: string[] = [];
 
 export function addClient(ws: WebSocket) {
   connectedClients.add(ws);
+  for (const msg of messageBuffer) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(msg);
+    }
+  }
 }
 
 export function removeClient(ws: WebSocket) {
@@ -17,6 +24,10 @@ export function broadcastNetworkLog(direction: "sent" | "received", data: unknow
     timestamp: new Date().toISOString(),
     data,
   });
+  messageBuffer.push(log);
+  if (messageBuffer.length > MAX_BUFFER) {
+    messageBuffer.shift();
+  }
   for (const client of connectedClients) {
     if (client.readyState === WebSocket.OPEN) {
       client.send(log);
