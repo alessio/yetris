@@ -319,6 +319,13 @@ export const runPlayerWS = (server: Server) => {
     console.log("Client connected");
     addClient(ws);
 
+    ws.send(JSON.stringify({
+      type: "networkLog",
+      direction: "received" as const,
+      timestamp: new Date().toISOString(),
+      data: { res: [0, "connection_test", { status: "Console pipeline working" }, 0] },
+    }));
+
     const tetrisWs = ws as TetrisWebSocket;
     tetrisWs.playerId = randomBytes(8).toString("hex");
 
