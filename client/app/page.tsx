@@ -4,6 +4,7 @@ import Board from "@/components/board";
 import ConnectWallet from "@/components/connect-wallet";
 import { GameOverDialog } from "@/components/game-over-dialog";
 import Navigation from "@/components/navigation";
+import NetworkConsole from "@/components/network-console";
 import { Button } from "@/components/ui/button";
 import UpcomingBlocks from "@/components/upcoming-blocks";
 import { useTetris } from "@/hooks/use-tetris";
@@ -36,6 +37,7 @@ export default function Home() {
     setIsGameOver,
     coronationHash,
     isNewChamp,
+    networkLogs,
   } = useTetris();
 
   const handlePlayAgain = () => {
@@ -120,6 +122,10 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="container mx-auto px-4 pb-8 mt-4 max-w-3xl">
+            <NetworkConsole logs={networkLogs} />
           </div>
         </div>
       </div>
@@ -259,6 +265,10 @@ export default function Home() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="px-3 py-2">
+          <NetworkConsole logs={networkLogs} />
         </div>
 
         {/* Connection Status */}

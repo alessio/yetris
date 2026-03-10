@@ -6,13 +6,10 @@ const messageBuffer: string[] = [];
 
 export function addClient(ws: WebSocket) {
   connectedClients.add(ws);
-  console.log(`[broadcast] addClient called, buffer has ${messageBuffer.length} messages, ws.readyState=${ws.readyState}, OPEN=${WebSocket.OPEN}`);
   for (const msg of messageBuffer) {
     try {
       ws.send(msg);
-    } catch (err) {
-      console.error("[broadcast] error replaying buffer:", err);
-    }
+    } catch {}
   }
 }
 
@@ -32,13 +29,10 @@ export function broadcastNetworkLog(direction: "sent" | "received", data: unknow
     if (messageBuffer.length > MAX_BUFFER) {
       messageBuffer.shift();
     }
-    console.log(`[broadcast] buffered ${direction} message, buffer size: ${messageBuffer.length}, clients: ${connectedClients.size}`);
     for (const client of connectedClients) {
       if (client.readyState === WebSocket.OPEN) {
         client.send(log);
       }
     }
-  } catch (err) {
-    console.error("[broadcast] error in broadcastNetworkLog:", err);
-  }
+  } catch {}
 }
