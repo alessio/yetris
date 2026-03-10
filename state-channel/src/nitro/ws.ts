@@ -2,6 +2,7 @@ import { EIP712AuthTypes } from "@yellow-org/sdk-compat";
 import WebSocket from "ws";
 import { walletClient } from "../constants";
 import { env } from "../constants/env";
+import { broadcastNetworkLog } from "../broadcast";
 
 let brokerWS: WebSocket | null;
 
@@ -74,15 +75,16 @@ export const runNitroWS = () => {
   ws.onopen = async () => {
     console.log("WebSocket connection established");
 
-    // we send the ws server an auth request
     const authMessage = getAuthMessage();
     ws.send(authMessage);
+    broadcastNetworkLog("sent", JSON.parse(authMessage));
   };
 
   ws.onmessage = async (event) => {
     try {
       const message = JSON.parse(event?.data.toString());
       console.log("Received message:", JSON.stringify(message, undefined, 2));
+      broadcastNetworkLog("received", message);
 
       // the server responds with the auth challenge
       if (message.res && message.res[1] === "auth_challenge") {
@@ -114,6 +116,7 @@ export const runNitroWS = () => {
         };
 
         ws.send(JSON.stringify(verifyRequest));
+        broadcastNetworkLog("sent", verifyRequest);
         // handy for debugging
       } else if (message.res && message.res[1] === "error") {
         console.error("Received error from server:");

@@ -9,6 +9,13 @@ import {
   getEmptyBoard,
 } from "@/hooks/use-tetris-board";
 
+export interface NetworkLogEntry {
+  direction: "sent" | "received";
+  timestamp: string;
+  method: string;
+  data: unknown;
+}
+
 enum TickSpeed {
   Normal = 800,
   Sliding = 100,
@@ -29,6 +36,7 @@ export function useTetris() {
     undefined,
   );
   const [isNewChamp, setIsNewChamp] = useState(false);
+  const [networkLogs, setNetworkLogs] = useState<NetworkLogEntry[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const [isWsConnected, setIsWsConnected] = useState(false);
@@ -101,6 +109,23 @@ export function useTetris() {
             setIsNewChamp(true);
           }
           break;
+
+        case "networkLog": {
+          const method =
+            data.data?.req?.[1] ??
+            data.data?.res?.[1] ??
+            "unknown";
+          setNetworkLogs((prev) => {
+            const next = [...prev, {
+              direction: data.direction,
+              timestamp: data.timestamp,
+              method,
+              data: data.data,
+            }];
+            return next.length > 100 ? next.slice(-100) : next;
+          });
+          break;
+        }
 
         case "error":
           console.error("WebSocket error:", data.message);
@@ -412,7 +437,7 @@ export function useTetris() {
     setIsGameOver,
     coronationHash,
     isNewChamp,
-    // Mobile control functions
+    networkLogs,
     moveLeft,
     moveRight,
     rotate,
